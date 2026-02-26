@@ -1,6 +1,6 @@
 # 🚀 Projet Data Engineering
 
-SQL · Python · Airflow · Docker · CI/CD
+**SQL · Python · Airflow · Docker · CI/CD**
 
 ## 🎯 Objectif du projet
 
@@ -22,8 +22,7 @@ Architecture basée sur le modèle Medallion :
 
 #### Objectif : Ingestion des données brutes.
 
- - Chargement de fichiers CSV
- - Simulation d’ingestion API
+ - Ingestion  avec l'API de Youtube (chaine : MrBeast)
  - Stockage dans PostgreSQL (schema bronze)
  - Scripts Python d’ingestion
  - Mise en place des logs
@@ -123,3 +122,30 @@ Architecture basée sur le modèle Medallion :
 | Conteneurisation | Docker         |
 | Tests            | Pytest         |
 | CI/CD            | GitHub Actions |
+
+
+## 📁 Structure du projet
+        Data-Engineering-project/
+        ├── .github/
+        │   └── workflows/              # CI/CD (GitHub Actions)
+        │
+        ├── dags/                       # DAGs Airflow
+        │
+        ├── data/                       # Données du projet (raw / processed)
+        │
+        ├── docker/
+        │   └── postgres/               # Configuration PostgreSQL (init scripts, volumes…)
+        │
+        ├── include/
+        │   └── soda/                   # Configuration Data Quality (Soda checks)
+        │
+        ├── tests/                      # Tests unitaires & intégration
+        │
+        ├── .gitignore
+        ├── docker-compose.yml          # Orchestration des services (Airflow +       └──Postgres)
+        ├── Dockerfile                  # Image personnalisée Airflow
+        ├── requirements.txt            # Dépendances Python
+        ├── LICENSE
+        └── README.md
+
+
