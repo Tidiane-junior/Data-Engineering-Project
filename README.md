@@ -154,47 +154,47 @@ Une **API** (Application Programming Interface) est un intermédiaire qui permet
 Elle définit comment demander une information et comment la recevoir, sans avoir besoin de connaître le fonctionnement interne du système.
 
 ### 🏢 Architecture API
-┌──────────────────────────┐
-│  Client (App / Script)    │
-│  Python / Front / Service │
-└─────────────┬────────────┘
-              │
-              │  ➜ Requête HTTP (GET/POST/PUT/DELETE)
-              │
-              v
-┌──────────────────────────┐
-│          API              │
-│  Gateway / Backend API    │
-│  - Auth (token)           │
-│  - Validation             │
-│  - Routing                │
-└─────────────┬────────────┘
-              │
-              │  ➜ Appel service / requête SQL
-              │
-              v
-┌──────────────────────────┐
-│   Backend / Data Layer    │
-│  - Business logic         │
-│  - DB (PostgreSQL)        │
-│  - External services      │
-└─────────────┬────────────┘
-              │
-              │  ◄ Résultat (data / statut)
-              │
-              v
-┌──────────────────────────┐
-│          API              │
-│  - Formatage (JSON)       │
-│  - Codes HTTP (200/4xx)   │
-└─────────────┬────────────┘
-              │
-              │  ◄ Réponse HTTP (JSON)
-              │
-              v
-┌──────────────────────────┐
-│  Client (App / Script)    │
-└──────────────────────────┘
+      ┌──────────────────────────┐
+      │  Client (App / Script)    │
+      │  Python / Front / Service │
+      └─────────────┬────────────┘
+                    │
+                    │  ➜ Requête HTTP (GET/POST/PUT/DELETE)
+                    │
+                    v
+      ┌──────────────────────────┐
+      │          API              │
+      │  Gateway / Backend API    │
+      │  - Auth (token)           │
+      │  - Validation             │
+      │  - Routing                │
+      └─────────────┬────────────┘
+                    │
+                    │  ➜ Appel service / requête SQL
+                    │
+                    v
+      ┌──────────────────────────┐
+      │   Backend / Data Layer    │
+      │  - Business logic         │
+      │  - DB (PostgreSQL)        │
+      │  - External services      │
+      └─────────────┬────────────┘
+                    │
+                    │  ◄ Résultat (data / statut)
+                    │
+                    v
+      ┌──────────────────────────┐
+      │          API              │
+      │  - Formatage (JSON)       │
+      │  - Codes HTTP (200/4xx)   │
+      └─────────────┬────────────┘
+                    │
+                    │  ◄ Réponse HTTP (JSON)
+                    │
+                    v
+      ┌──────────────────────────┐
+      │  Client (App / Script)    │
+      └──────────────────────────┘
 
 Pour aller plus loin : 
        https://github.com/MattTheDataEngineer/YT_ELT
