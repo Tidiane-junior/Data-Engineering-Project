@@ -125,27 +125,27 @@ Architecture basée sur le modèle Medallion :
 
 
 ## 📁 Structure du projet
-        Data-Engineering-project/
-        ├── .github/
-        │   └── workflows/              # CI/CD (GitHub Actions)
-        │
-        ├── dags/                       # DAGs Airflow
-        │
-        ├── data/                       # Données du projet (raw / processed)
-        │
-        ├── docker/
-        │   └── postgres/               # Configuration PostgreSQL (init scripts, volumes…)
-        │
-        ├── include/
-        │   └── soda/                   # Configuration Data Quality (Soda checks)
-        │
-        ├── tests/                      # Tests unitaires & intégration
-        │
-        ├── .gitignore
-        ├── docker-compose.yml          # Orchestration des services (Airflow +       └──Postgres)
-        ├── Dockerfile                  # Image personnalisée Airflow
-        ├── requirements.txt            # Dépendances Python
-        ├── LICENSE
-        └── README.md
+    Data-Engineering-project/
+      ├── .github/
+      │   └── workflows/              # CI/CD (GitHub Actions)
+      │
+      ├── dags/                       # DAGs Airflow
+      │
+      ├── data/                       # Données du projet (raw / processed)
+      │
+      ├── docker/
+      │   └── postgres/               # Configuration PostgreSQL (init scripts, volumes…)
+      │
+      ├── include/
+      │   └── soda/                   # Configuration Data Quality (Soda checks)
+      │
+      ├── tests/                      # Tests unitaires & intégration
+      │
+      ├── .gitignore
+      ├── docker-compose.yml          # Orchestration des services (Airflow + Postgres)
+      ├── Dockerfile                  # Image personnalisée Airflow
+      ├── requirements.txt            # Dépendances Python
+      ├── LICENSE
+      └── README.md
 
 
