@@ -29,16 +29,12 @@ def get_playlisT_Id():
         # Je récupère l'identifiant de la playlist des vidéos téléchargées du canal YouTube à partir des détails du canal
         channel_playlisId = channel_items["contentDetails"]["relatedPlaylists"]["uploads"]
 
-        print(channel_playlisId) # Afficher l'identifiant de la playlist des vidéos téléchargées du canal YouTube
+        # print(channel_playlisId) # Afficher l'identifiant de la playlist des vidéos téléchargées du canal YouTube
 
         return channel_playlisId
     except requests.exceptions.RequestException as e:
         raise e
     
 if __name__ == "__main__":
-    print('La fonction get_playlists_Id est en cours d\'exécution...')
     get_playlisT_Id()
-
-else: 
-    print('La fonction get_playlists_Id ne sera pas exécutée.')
 
