@@ -1,6 +1,6 @@
 # Importer les modules necessaire
-import requests # requests pour faire des requêtes HTTP
-import os # os pour gérer les variables d'environnement
+import requests # pour faire des requêtes HTTP
+import os # pour gérer les variables d'environnement
 from dotenv import load_dotenv # pour charger les variables d'environnement à partir d'un fichier .env
 import json
 from datetime import date
@@ -79,12 +79,9 @@ def batch_list(video_ids_list, batch_size):
 
 def extract_video_data(video_ids):
     extracted_data = []
-
-    # def batch_list(video_ids_list, batch_size):
-    #     for video_id in range(0, len(video_ids_list), batch_size):
-    #         yield video_ids_list[video_id:video_id + batch_size]
-        
+   
     try : 
+        # YouTube API a une limite de 50 vidéos par requête, donc je divise la liste des video_ids en batches de 50 pour faire plusieurs requêtes si nécessaire
         for batch in batch_list(video_ids, maxResults):
             video_ids_str = ",".join(batch)
 
