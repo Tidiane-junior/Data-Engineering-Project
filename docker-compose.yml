@@ -1,0 +1,231 @@
+# version: "3.8"
+
+# Définir une configuration commune pour tous les services Airflow
+x-airflow-common: &airflow-common
+
+  # Utiliser l'image Docker construite et stockée sur DockerHub
+  image: ${DOCKERHUB_NAMESPACE}/${DOCKERHUB_REPOSITORY}:${IMAGE_TAG}
+
+  # Charger les variables d'environnement depuis le fichier .env
+  env_file:
+    - .env
+
+  # Configurer les variables d'environnement nécessaires à Airflow
+  environment: &airflow-common-env
+
+    # Définir l'exécuteur Celery pour distribuer les tâches
+    AIRFLOW__CORE__EXECUTOR: CeleryExecutor
+
+    # Connecter Airflow à la base de métadonnées PostgreSQL
+    AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://${METADATA_DATABASE_USERNAME}:${METADATA_DATABASE_PASSWORD}@${POSTGRES_CONN_HOST}:${POSTGRES_CONN_PORT}/${METADATA_DATABASE_NAME}
+
+    # Stocker les résultats des tâches Celery dans PostgreSQL
+    AIRFLOW__CELERY__RESULT_BACKEND: db+postgresql://${CELERY_BACKEND_USERNAME}:${CELERY_BACKEND_PASSWORD}@${POSTGRES_CONN_HOST}:${POSTGRES_CONN_PORT}/${CELERY_BACKEND_NAME}
+
+    # Utiliser Redis comme broker pour la communication entre scheduler et workers
+    AIRFLOW__CELERY__BROKER_URL: redis://:@redis:6379/0
+
+    # Définir la clé de chiffrement des données sensibles
+    AIRFLOW__CORE__FERNET_KEY: ${FERNET_KEY}
+
+    # Mettre les nouveaux DAGs en pause lors de leur création
+    AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: "true"
+
+    # Désactiver les DAGs d'exemple fournis par Airflow
+    AIRFLOW__CORE__LOAD_EXAMPLES: "false"
+
+    # Activer les méthodes d'authentification API
+    AIRFLOW__API__AUTH_BACKENDS: airflow.api.auth.backend.basic_auth,airflow.api.auth.backend.session
+
+    # Activer les vérifications de santé du scheduler
+    AIRFLOW__SCHEDULER__ENABLE_HEALTH_CHECK: "true"
+
+    # Créer une connexion Airflow vers la base PostgreSQL utilisée par le pipeline ELT
+    AIRFLOW_CONN_POSTGRES_DB_YT_ELT: postgresql://${ELT_DATABASE_USERNAME}:${ELT_DATABASE_PASSWORD}@${POSTGRES_CONN_HOST}:${POSTGRES_CONN_PORT}/${ELT_DATABASE_NAME}
+
+    # Injecter la clé API YouTube dans les variables Airflow
+    AIRFLOW_VAR_API_KEY: ${API_KEY}
+
+    # Injecter le handle de la chaîne YouTube
+    AIRFLOW_VAR_CHANNEL_HANDLE: ${CHANNEL_HANDLE}
+
+    # Définir les paramètres de la base ELT
+    ELT_DATABASE_NAME: ${ELT_DATABASE_NAME}
+    ELT_DATABASE_USERNAME: ${ELT_DATABASE_USERNAME}
+    ELT_DATABASE_PASSWORD: ${ELT_DATABASE_PASSWORD}
+
+    # Définir les paramètres de connexion PostgreSQL
+    POSTGRES_CONN_HOST: ${POSTGRES_CONN_HOST}
+    POSTGRES_CONN_PORT: ${POSTGRES_CONN_PORT}
+
+  # Monter les dossiers du projet dans les containers Airflow
+  volumes:
+    - ./config:/opt/airflow/config
+    - ./dags:/opt/airflow/dags
+    - ./data:/opt/airflow/data
+    - ./include:/opt/airflow/include
+    - ./logs:/opt/airflow/logs
+    - ./plugins:/opt/airflow/plugins
+    - ./tests:/opt/airflow/tests
+
+  # Définir l'utilisateur Airflow pour éviter les problèmes de permissions
+  user: "${AIRFLOW_UID}:0"
+
+  # Attendre que Redis et PostgreSQL soient prêts avant de démarrer Airflow
+  depends_on: &airflow-common-depends-on
+    redis:
+      condition: service_healthy
+    postgres:
+      condition: service_healthy
+
+
+services:
+
+  # Démarrer la base de données PostgreSQL
+  postgres:
+    container_name: postgres
+    image: postgres:13
+
+    # Charger les variables d'environnement PostgreSQL
+    env_file:
+      - .env
+
+    # Définir l'utilisateur et le mot de passe PostgreSQL
+    environment:
+      POSTGRES_USER: ${POSTGRES_CONN_USERNAME}
+      POSTGRES_PASSWORD: ${POSTGRES_CONN_PASSWORD}
+
+    # Exposer le port PostgreSQL vers la machine locale
+    ports:
+      - "5432:5432"
+
+    # Monter le volume pour persister les données
+    volumes:
+      - postgres-db-volume:/var/lib/postgresql/data
+
+      # Exécuter un script pour créer plusieurs bases de données
+      - ./docker/postgres/init-multiple-databases.sh:/docker-entrypoint-initdb.d/init-multiple-databases.sh
+
+    # Vérifier que PostgreSQL est prêt
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "${POSTGRES_CONN_USERNAME}", "-d", "${METADATA_DATABASE_NAME}"]
+      interval: 10s
+      retries: 5
+      start_period: 5s
+
+    restart: always
+
+
+  # Démarrer Redis pour gérer la file de messages Celery
+  redis:
+    container_name: redis
+    image: redis:7.2-bookworm
+
+    # Exposer le port Redis aux autres containers
+    expose:
+      - 6379
+
+    # Vérifier que Redis répond correctement
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 30s
+      retries: 50
+      start_period: 30s
+
+    restart: always
+
+
+  # Lancer le serveur web Airflow pour accéder à l'interface utilisateur
+  airflow-webserver:
+    <<: *airflow-common
+    container_name: airflow-webserver
+    command: webserver
+
+    # Exposer l'interface web Airflow
+    ports:
+      - "8080:8080"
+
+    # Attendre l'initialisation d'Airflow
+    depends_on:
+      <<: *airflow-common-depends-on
+      airflow-init:
+        condition: service_completed_successfully
+
+    restart: always
+
+
+  # Lancer le scheduler pour planifier l'exécution des DAGs
+  airflow-scheduler:
+    <<: *airflow-common
+    container_name: airflow-scheduler
+    command: scheduler
+
+    depends_on:
+      <<: *airflow-common-depends-on
+      airflow-init:
+        condition: service_completed_successfully
+
+    restart: always
+
+
+  # Lancer les workers Celery pour exécuter les tâches en parallèle
+  airflow-worker:
+    <<: *airflow-common
+    container_name: airflow-worker
+    command: celery worker
+
+    environment:
+      <<: *airflow-common-env
+
+      # Permettre un arrêt propre des workers
+      DUMB_INIT_SETSID: "0"
+
+    depends_on:
+      <<: *airflow-common-depends-on
+      airflow-init:
+        condition: service_completed_successfully
+
+    restart: always
+
+
+  # Initialiser Airflow et créer l'utilisateur admin
+  airflow-init:
+    <<: *airflow-common
+    container_name: airflow-init
+    entrypoint: /bin/bash
+
+    command:
+      - -c
+      - |
+        # Créer les dossiers nécessaires au fonctionnement d'Airflow
+        mkdir -p /sources/dags /sources/data /sources/include /sources/logs /sources/tests
+
+        # Attribuer les bonnes permissions aux dossiers
+        chown -R "${AIRFLOW_UID}:0" /sources/{dags,data,include,logs,tests}
+
+        # Vérifier la version Airflow pour valider l'installation
+        exec /entrypoint airflow version
+
+    environment:
+      <<: *airflow-common-env
+
+      # Migrer automatiquement la base Airflow
+      _AIRFLOW_DB_MIGRATE: "true"
+
+      # Créer automatiquement l'utilisateur administrateur
+      _AIRFLOW_WWW_USER_CREATE: "true"
+
+      # Définir les identifiants de l'utilisateur admin
+      _AIRFLOW_WWW_USER_USERNAME: ${AIRFLOW_WWW_USER_USERNAME}
+      _AIRFLOW_WWW_USER_PASSWORD: ${AIRFLOW_WWW_USER_PASSWORD}
+
+    user: "0:0"
+
+    volumes:
+      - .:/sources
+
+
+# Créer un volume Docker pour stocker les données PostgreSQL
+volumes:
+  postgres-db-volume:
