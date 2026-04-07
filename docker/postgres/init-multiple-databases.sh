@@ -1,28 +1,37 @@
 #!/bin/bash
+
 set -e
-set -u
 
-function create_user_and_database() {
-    local database="$1"
-    local username="$2"
-    local password="$3"
-    echo "Creating user '$username' and database '$database'"
-    psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" <<-EOSQL
-        CREATE USER $username WITH PASSWORD '$password';
-        CREATE DATABASE $database;
-        GRANT ALL PRIVILEGES ON DATABASE $database TO $username;
-
-EOSQL
-    echo "User '$username' and database '$database' created successfully"
-}
+# Source .env file if it exists
+if [ -f /.env ]; then
+  export $(cat /.env | grep -v '#' | xargs)
+fi
 
 # Metadata database
-create_user_and_database "METADATA_DATABASE_NAME" "METADATA_DATABASE_USERNAME" "METADATA_DATABASE_PASSWORD"
+echo "Creating user '$METADATA_DATABASE_USERNAME' and database '$METADATA_DATABASE_NAME'"
+psql -v ON_ERROR_STOP=1 --username "$POSTGRES_CONN_USERNAME" <<-EOSQL
+    CREATE ROLE $METADATA_DATABASE_USERNAME WITH LOGIN PASSWORD '$METADATA_DATABASE_PASSWORD';
+    CREATE DATABASE $METADATA_DATABASE_NAME OWNER $METADATA_DATABASE_USERNAME;
+    GRANT ALL PRIVILEGES ON DATABASE $METADATA_DATABASE_NAME TO $METADATA_DATABASE_USERNAME;
+EOSQL
+echo "User '$METADATA_DATABASE_USERNAME' and database '$METADATA_DATABASE_NAME' created successfully"
 
-# Celery results backend database
-create_user_and_database "CELERY_BACKEND_NAME" "CELERY_BACKEND_USERNAME" "CELERY_BACKEND_PASSWORD"
+# Celery database
+echo "Creating user '$CELERY_BACKEND_USERNAME' and database '$CELERY_BACKEND_NAME'"
+psql -v ON_ERROR_STOP=1 --username "$POSTGRES_CONN_USERNAME" <<-EOSQL
+    CREATE ROLE $CELERY_BACKEND_USERNAME WITH LOGIN PASSWORD '$CELERY_BACKEND_PASSWORD';
+    CREATE DATABASE $CELERY_BACKEND_NAME OWNER $CELERY_BACKEND_USERNAME;
+    GRANT ALL PRIVILEGES ON DATABASE $CELERY_BACKEND_NAME TO $CELERY_BACKEND_USERNAME;
+EOSQL
+echo "User '$CELERY_BACKEND_USERNAME' and database '$CELERY_BACKEND_NAME' created successfully"
 
 # ELT database
-create_user_and_database "ELT_DATABASE_NAME" "ELT_DATABASE_USERNAME" "ELT_DATABASE_PASSWORD"
+echo "Creating user '$ELT_DATABASE_USERNAME' and database '$ELT_DATABASE_NAME'"
+psql -v ON_ERROR_STOP=1 --username "$POSTGRES_CONN_USERNAME" <<-EOSQL
+    CREATE ROLE $ELT_DATABASE_USERNAME WITH LOGIN PASSWORD '$ELT_DATABASE_PASSWORD';
+    CREATE DATABASE $ELT_DATABASE_NAME OWNER $ELT_DATABASE_USERNAME;
+    GRANT ALL PRIVILEGES ON DATABASE $ELT_DATABASE_NAME TO $ELT_DATABASE_USERNAME;
+EOSQL
+echo "User '$ELT_DATABASE_USERNAME' and database '$ELT_DATABASE_NAME' created successfully"
 
 echo "All databases and users created successfully"
