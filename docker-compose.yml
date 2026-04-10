@@ -1,9 +1,9 @@
 # version: "3.8"
 
-# Définir une configuration commune pour tous les services Airflow
+# On définie une configuration commune (par defaut) pour tous les services Airflow
 x-airflow-common: &airflow-common
 
-  # Utiliser l'image Docker construite et stockée sur DockerHub
+  # J'utilise l'image Docker construite et stockée sur DockerHub
   image: ${DOCKERHUB_NAMESPACE}/${DOCKERHUB_REPOSITORY}:${IMAGE_TAG}
 
   # Charger les variables d'environnement depuis le fichier .env

@@ -5,17 +5,20 @@ from dotenv import load_dotenv # pour charger les variables d'environnement à p
 import json
 from datetime import date
 
-load_dotenv(dotenv_path ="./.env") # Charger les variables d'environnement à partir du fichier .env
+from airflow.decorators import task
+from airflow.models import variable
 
+load_dotenv(dotenv_path ="./.env") # Charger les variables d'environnement à partir du fichier .env
 API_KEY = os.getenv("API_KEY") # Récupérer la clé API à partir des variables d'environnement
-channel_handle = "MrBeast" # La chaine Youtube dont on veut récupérer les statistiques
+CHANNEL_HANDLE = "MrBeast" # La chaine Youtube dont on veut récupérer les statistiques
 maxResults = 50 # Le nombre maximum de résultats à récupérer pour les vidéos
 
+@task
 def get_playlist_id():
 
     try :
         # Construire l'URL de la requête depuis YouTube API pour obtenir les détails du canal YouTube
-        url = f"https://youtube.googleapis.com/youtube/v3/channels?part=contentDetails&forHandle={channel_handle}&key={API_KEY}"
+        url = f"https://youtube.googleapis.com/youtube/v3/channels?part=contentDetails&forHandle={CHANNEL_HANDLE}&key={API_KEY}"
 
         response = requests.get(url)
 
@@ -40,6 +43,7 @@ def get_playlist_id():
         raise e
     
 
+@task
 def get_video_ids(playlistId):
     video_ids = []
 
@@ -73,10 +77,13 @@ def get_video_ids(playlistId):
     except requests.exceptions.RequestException as e:
         raise e
 
+
+@task
 def batch_list(video_ids_list, batch_size):
     for video_id in range(0, len(video_ids_list), batch_size):
         yield video_ids_list[video_id : video_id + batch_size]
 
+@task
 def extract_video_data(video_ids):
     extracted_data = []
    
@@ -117,6 +124,7 @@ def extract_video_data(video_ids):
     except requests.exceptions.RequestException as e:
         raise e
 
+@task
 def save_to_json(extracted_data):
     file_path = f"./data/YT_data_{date.today()}.json"
 
